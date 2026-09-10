@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Biometric Face Recognition Login System</title>
+  <meta name="description" content="State-of-the-art AI Face Recognition Authentication and Biometric Identity Access System.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="/css/style.css">
+  
+  <!-- Face-API.js from CDN -->
+  <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+  <!-- Application Logic -->
+  <script defer src="/js/app.js"></script>
+</head>
+<body>
+  <!-- Ambient background glow effects -->
+  <div class="ambient-glow glow-top"></div>
+  <div class="ambient-glow glow-bottom"></div>
+  <div class="cyber-grid-overlay"></div>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-group">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+            <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+            <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+            <circle cx="12" cy="11" r="3"></circle>
+            <path d="M12 14c-2.5 0-4.5 1-4.5 3"></path>
+            <path d="M16.5 17c0-2-2-3-4.5-3"></path>
+          </svg>
+          <span class="pulse-ring"></span>
+        </div>
+        <div class="brand-text">
+          <h1 class="brand-title">AURA<span>.ID</span></h1>
+          <span class="brand-tagline">BIOMETRIC FACE AUTHENTICATION</span>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-tabs" role="tablist">
+        <button class="tab-btn active" id="tab-login" data-tab="login-view" role="tab" aria-selected="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+          <span>Face Login</span>
+        </button>
+        <button class="tab-btn" id="tab-register" data-tab="register-view" role="tab" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+          <span>Register Face</span>
+        </button>
+        <button class="tab-btn" id="tab-database" data-tab="database-view" role="tab" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          <span>Directory & Logs</span>
+        </button>
+      </nav>
+
+      <!-- System Status Indicators -->
+      <div class="system-status">
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span class="status-label" id="backend-status">API Connected</span>
+        </div>
+        <div class="users-badge" title="Registered Identities">
+          <span class="badge-number" id="registered-count">0</span> Faces Enrolled
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="main-content">
+
+    <!-- ==================== VIEW 1: FACE LOGIN ==================== -->
+    <section class="view-panel active" id="login-view">
+      <div class="scanner-card">
+        <!-- Card Header -->
+        <div class="card-header">
+          <div class="header-info">
+            <h2>Biometric Face Login</h2>
+            <p>Position your face within the reticle to scan and authenticate identity.</p>
+          </div>
+          <div class="scanner-mode-switch">
+            <button class="pill-btn active" id="btn-mode-auto" title="Continuously match as soon as face is steady">Auto Scan</button>
+            <button class="pill-btn" id="btn-mode-manual" title="Capture manually with button">Manual Trigger</button>
+          </div>
+        </div>
+
+        <!-- Camera Viewport & Biometric HUD -->
+        <div class="camera-viewport-wrapper">
+          <div class="camera-viewport" id="login-camera-box">
+            <!-- Video feed -->
+            <video id="login-video" autoplay muted playsinline></video>
+            <!-- Canvas for landmark overlays & bounding boxes -->
+            <canvas id="login-overlay"></canvas>
+
+            <!-- Sci-Fi Biometric HUD Elements -->
+            <div class="hud-layer">
+              <div class="hud-bracket top-left"></div>
+              <div class="hud-bracket top-right"></div>
+              <div class="hud-bracket bottom-left"></div>
+              <div class="hud-bracket bottom-right"></div>
+              <div class="face-guide-oval"></div>
+              <div class="laser-scanner"></div>
+
+              <!-- Real-time HUD Meta Information -->
+              <div class="hud-meta top-meta">
+                <span class="hud-tag">HUD v2.4</span>
+                <span class="hud-tag" id="hud-resolution">1280x720</span>
+                <span class="hud-tag hud-fps" id="hud-fps">30 FPS</span>
+              </div>
+
+              <!-- Live Biometric Status Bar -->
+              <div class="hud-status-bar" id="login-status-bar">
+                <div class="status-spinner" id="status-spinner"></div>
+                <span class="status-text" id="login-status-text">Initializing AI Vision Models...</span>
+              </div>
+            </div>
+
+            <!-- Fallback Mock / Upload Banner if user has no camera -->
+            <div class="camera-fallback" id="login-camera-fallback" style="display: none;">
+              <div class="fallback-icon">📷</div>
+              <h3>Webcam Access Disabled or Not Found</h3>
+              <p>Allow camera permissions in your browser, or test the biometric system using our demo simulator.</p>
+              <button class="btn btn-secondary" id="btn-use-demo-login">Simulate Face Scan (Demo Mode)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls & Action Toolbar -->
+        <div class="scanner-controls">
+          <div class="controls-left">
+            <button class="btn btn-icon" id="btn-flip-camera" title="Switch Camera">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0-4.418-3.582-8-8-8s-8 3.582-8 8H1l4 4 4-4H6c0-3.314 2.686-6 6-6s6 2.686 6 6h3z"/><path d="M4 14c0 4.418 3.582 8 8 8s8-3.582 8-8h3l-4-4-4 4h3c0 3.314-2.686 6-6 6s-6-2.686-6-6H4z"/></svg>
+            </button>
+            <button class="btn btn-icon" id="btn-toggle-camera" title="Pause / Resume Video">
+              <svg id="cam-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            </button>
+          </div>
+
+          <div class="controls-center">
+            <button class="btn btn-primary btn-lg" id="btn-scan-login">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+              <span>Scan & Authenticate</span>
+            </button>
+          </div>
+
+          <div class="controls-right">
+            <span class="mode-hint" id="mode-hint-text">Auto-matching active</span>
+          </div>
+        </div>
+
+        <!-- Authentication Result Card (Dynamically displayed) -->
+        <div class="auth-result-banner" id="auth-result-banner" style="display: none;">
+          <div class="result-icon-box" id="result-icon-box">
+            <svg class="icon-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <svg class="icon-denied" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          </div>
+          <div class="result-details">
+            <h3 id="result-title">Access Granted</h3>
+            <p id="result-subtitle">Identified as <strong>Lagan Arora</strong></p>
+            <div class="result-meta">
+              <span class="meta-item">Confidence: <strong id="result-confidence">98.4%</strong></span>
+              <span class="meta-item">Euclidean Distance: <strong id="result-distance">0.218</strong></span>
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btn-dismiss-result">Dismiss</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 2: REGISTER FACE ==================== -->
+    <section class="view-panel" id="register-view">
+      <div class="register-grid">
+        <!-- Left: Camera Preview and Biometric Capture -->
+        <div class="register-camera-panel">
+          <div class="panel-header">
+            <h3>Face Enrollment Sensor</h3>
+            <span class="step-badge">Step 1: Capture Face</span>
+          </div>
+
+          <div class="camera-viewport mini-viewport" id="reg-camera-box">
+            <video id="reg-video" autoplay muted playsinline></video>
+            <canvas id="reg-overlay"></canvas>
+            
+            <div class="hud-layer">
+              <div class="hud-bracket top-left"></div>
+              <div class="hud-bracket top-right"></div>
+              <div class="hud-bracket bottom-left"></div>
+              <div class="hud-bracket bottom-right"></div>
+              <div class="face-guide-oval"></div>
+              
+              <div class="hud-status-bar" id="reg-status-bar">
+                <span class="status-text" id="reg-status-text">Look directly at the lens</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="reg-capture-actions">
+            <button class="btn btn-primary w-full" id="btn-capture-face">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+              <span>Capture Face Template</span>
+            </button>
+            <button class="btn btn-secondary w-full" id="btn-use-demo-register">Use Sample Biometric Face (Demo)</button>
+          </div>
+
+          <!-- Quality checks checklist -->
+          <div class="quality-checklist">
+            <div class="check-item" id="chk-single-face">
+              <span class="check-dot"></span> Single Face in View
+            </div>
+            <div class="check-item" id="chk-landmarks">
+              <span class="check-dot"></span> 68 Biometric Landmarks Locked
+            </div>
+            <div class="check-item" id="chk-vector">
+              <span class="check-dot"></span> 128-d Vector Generated
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Profile Form Details -->
+        <div class="register-form-panel">
+          <div class="panel-header">
+            <h3>Identity Credentials</h3>
+            <span class="step-badge">Step 2: Account Details</span>
+          </div>
+
+          <!-- Snapshot thumbnail preview -->
+          <div class="snapshot-preview-box">
+            <div class="snapshot-circle" id="snapshot-circle">
+              <img id="reg-snapshot-img" src="" alt="Captured Face" style="display: none;">
+              <span id="snapshot-placeholder">No face captured yet</span>
+            </div>
+            <div class="snapshot-meta">
+              <h4>Biometric Snapshot</h4>
+              <p id="snapshot-status-label">Click "Capture Face Template" to extract biometric vector.</p>
+            </div>
+          </div>
+
+          <form id="form-register" class="register-form">
+            <div class="form-group">
+              <label for="reg-username">Username <span class="required">*</span></label>
+              <div class="input-wrapper">
+                <span class="input-icon">@</span>
+                <input type="text" id="reg-username" name="username" placeholder="e.g. lagan" required autocomplete="off">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="reg-fullname">Full Name <span class="required">*</span></label>
+              <div class="input-wrapper">
+                <span class="input-icon">👤</span>
+                <input type="text" id="reg-fullname" name="fullname" placeholder="e.g. Lagan Arora" required autocomplete="off">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="reg-email">Email Address</label>
+              <div class="input-wrapper">
+                <span class="input-icon">✉️</span>
+                <input type="email" id="reg-email" name="email" placeholder="e.g. user@example.com" autocomplete="off">
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary btn-lg w-full" id="btn-submit-registration" disabled>
+                <span>Enroll User into Database</span>
+              </button>
+            </div>
+
+            <div class="form-feedback" id="reg-feedback-message"></div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 3: DATABASE & AUDIT LOGS ==================== -->
+    <section class="view-panel" id="database-view">
+      <div class="database-container">
+        <!-- Left: Registered Users Grid -->
+        <div class="panel-box">
+          <div class="box-header">
+            <h3>Registered Identities</h3>
+            <span class="counter-badge" id="total-users-badge">0 Users</span>
+          </div>
+          <div class="users-list" id="users-list">
+            <div class="empty-state">No users registered yet. Enroll a face in the "Register Face" tab!</div>
+          </div>
+        </div>
+
+        <!-- Right: Real-time Audit Trail -->
+        <div class="panel-box">
+          <div class="box-header">
+            <h3>Security Audit Trail</h3>
+            <button class="btn btn-secondary btn-sm" id="btn-refresh-logs">Refresh</button>
+          </div>
+          <div class="table-responsive">
+            <table class="audit-table">
+              <thead>
+                <tr>
+                  <th>Time (UTC)</th>
+                  <th>Identity</th>
+                  <th>Status</th>
+                  <th>Confidence</th>
+                  <th>Distance</th>
+                </tr>
+              </thead>
+              <tbody id="audit-logs-body">
+                <tr><td colspan="5" class="text-center">Loading audit logs...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 4: AUTHENTICATED DASHBOARD ==================== -->
+    <section class="view-panel" id="dashboard-view">
+      <div class="dashboard-card">
+        <div class="dashboard-banner">
+          <div class="badge-verified">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+            Biometrically Verified
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btn-dashboard-logout">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+            Secure Sign Out
+          </button>
+        </div>
+
+        <div class="user-profile-header">
+          <div class="profile-avatar">
+            <img id="dash-user-avatar" src="" alt="User Avatar">
+          </div>
+          <div class="profile-meta">
+            <span class="user-role-tag">AUTHORIZED SYSTEM USER</span>
+            <h2 id="dash-user-name">Lagan Arora</h2>
+            <p id="dash-user-username">@lagan</p>
+          </div>
+        </div>
+
+        <div class="dashboard-stats-grid">
+          <div class="dash-stat-item">
+            <span class="stat-label">Session Token</span>
+            <code class="stat-code" id="dash-session-token">sess_xxxxxxxxx</code>
+          </div>
+          <div class="dash-stat-item">
+            <span class="stat-label">Match Score</span>
+            <span class="stat-value text-emerald" id="dash-confidence">99.1%</span>
+          </div>
+          <div class="dash-stat-item">
+            <span class="stat-label">Vector Distance</span>
+            <span class="stat-value text-cyan" id="dash-distance">0.185</span>
+          </div>
+          <div class="dash-stat-item">
+            <span class="stat-label">Security Clearance</span>
+            <span class="stat-value text-purple">Level 5 (Biometric)</span>
+          </div>
+        </div>
+
+        <div class="dash-quick-actions">
+          <button class="btn btn-secondary" id="btn-return-scanner">Return to Scanner</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Notification Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+</body>
+</html>
